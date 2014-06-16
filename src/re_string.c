@@ -38,6 +38,7 @@ resetstr(re_str_t *oldstr, const u_char *addstr){
 	while(++t < len){
 		*p++ = *ostr++;
 	}
+	*p='\0';
 	return (re_str_t)nstring(newstr, addstr, "\0");
 }
 
@@ -70,15 +71,3 @@ re_cpybuf(u_char *dst, u_char *src, size_t len)
 	}
 	return dst;
 }
-// int 
-// main(int argc, char *const *argv)
-// {
-// 	re_str_t s;
-
-// 	s= nstring("abcdefgaaaf", ".pt", "\0");
-// 	printf("2----%s\n", s.data);
-// 	printf("3---%d\n", (int)s.len);
-// 	re_str_t t = resetstr(&s ,".hi");
-// 	printf("8---%s\n", t.data);
-// 	return 0;
-// }

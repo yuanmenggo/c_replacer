@@ -49,7 +49,6 @@ typedef struct stat file_info_t;
 
 typedef struct {
       int         fd;
-      re_buf_t    *buff; 
       re_str_t    *name;
       re_queue_t  *buffs;
       off_t       offset;
@@ -66,6 +65,7 @@ typedef struct
 
 typedef struct {
         file_fd_t   fd_file;
+        re_buf_t    *buff; 
         file_fd_t   fd_tmp_file;
         file_fd_t   fd_inc_file;
         file_info_t info;

@@ -94,7 +94,6 @@ process_dir(re_cycle_t *cycle, u_char *path)
 re_file_t *
 build_rep_file(re_cycle_t *cycle, re_str_t *name)
 {
-    re_str_t  tmp_name, inc_name;
     re_buf_t  *buf, *tmp_buf, *inc_buf;
     re_queue_t  *tmp_queue, *inc_queue;
     re_file_t *file;
@@ -113,42 +112,18 @@ build_rep_file(re_cycle_t *cycle, re_str_t *name)
     buf = re_pcalloc(cycle->pool, sizeof(re_buf_t));
     file->fd_file.name = name;
     file->fd_file.offset = 0;
-    file->fd_file.buff = buf;
+    file->buff = buf;
     init_buf(cycle, buf);
-
-
-    tmp_name = resetstr(name ,".tmp");
-    file->fd_tmp_file.name = &tmp_name;
-
-    file->fd_tmp_file.fd = open_write_file(tmp_name.data);
-    if( file->fd_tmp_file.fd == RE_ERROR){
-        exit_with_error("open tmp file error");
-    }
-    tmp_buf = re_pcalloc(cycle->pool, sizeof(re_buf_t));
     file->fd_tmp_file.offset = 0;
-    file->fd_tmp_file.buff = tmp_buf;
+
     tmp_queue = re_pcalloc(cycle->pool, sizeof(re_queue_t));
     file->fd_tmp_file.buffs = tmp_queue;
     re_queue_init(tmp_queue);
-    init_buf(cycle, tmp_buf);
-
-
-
-    inc_name = resetstr(name ,".h");
-    file->fd_inc_file.name = &inc_name;
-
-    file->fd_inc_file.fd = open_write_file(inc_name.data);
-    if( file->fd_inc_file.fd == RE_ERROR){
-        exit_with_error("open include file error");
-    }
-    inc_buf = re_pcalloc(cycle->pool, sizeof(re_buf_t));
     file->fd_inc_file.offset = 0;
-    file->fd_inc_file.buff = inc_buf;
 
     inc_queue = re_pcalloc(cycle->pool, sizeof(re_queue_t));
     file->fd_inc_file.buffs = inc_queue;
     re_queue_init(inc_queue);
-    init_buf(cycle, inc_buf);
 
     return file;
 }
@@ -179,20 +154,16 @@ process_file(re_cycle_t *cycle, re_str_t *name)
 size_t
 loop_replace(re_cycle_t *cycle, re_file_t  *rep_file){
     off_t   file_size;
-    u_char  str[10], lang[]="LAN", *start, ch, *s, *src, *dst;
-    size_t  len,size, n, r, offset, fd, tmp_fd, inc_fd, is_found =0;
-    uintptr_t   commented, quoted, t_quoted, line;
+    u_char  *start, ch;
+    size_t  len, size, n, r, offset, fd, is_found =0;
+    uintptr_t   commented, quoted, t_quoted;
     re_queue_t  *tmp_queue, *inc_queue;
     int order = 0;
-    re_buf_t   *b, *tmp_buf, *inc_buf;
+    re_buf_t   *b;
 
     fd = rep_file->fd_file.fd;
-    tmp_fd = rep_file->fd_tmp_file.fd;
-    inc_fd = rep_file->fd_inc_file.fd;
 
-    b = rep_file->fd_file.buff;
-    tmp_buf = rep_file->fd_tmp_file.buff;
-    inc_buf = rep_file->fd_inc_file.buff;
+    b = rep_file->buff;
 
     tmp_queue = rep_file->fd_tmp_file.buffs;
     inc_queue = rep_file->fd_inc_file.buffs;
@@ -363,8 +334,26 @@ write_inc_queue(size_t fd, re_queue_t *q)
 size_t
 write_and_close_file(re_file_t *file)
 {
+    re_str_t  *name, tmp_name, inc_name;
+    name = file->fd_file.name;
+
+    tmp_name = resetstr(name, ".tmp");
+    
+    file->fd_tmp_file.fd = open_write_file(tmp_name.data);
+    if( file->fd_tmp_file.fd == RE_ERROR){
+        return exit_with_error("open tmp file error");
+    }
     write_queue(file->fd_tmp_file.fd, file->fd_tmp_file.buffs);
+
+    inc_name = resetstr(name, ".h");
+
+    file->fd_inc_file.fd = open_write_file(inc_name.data);
+    if( file->fd_inc_file.fd == RE_ERROR){
+        return exit_with_error("open include file error");
+    }
+
     write_inc_queue(file->fd_inc_file.fd, file->fd_inc_file.buffs);
+
     if(close(file->fd_file.fd) ==RE_ERROR){
         return exit_with_error("close fd error");
     }
