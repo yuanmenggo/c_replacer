@@ -239,36 +239,19 @@ loop_replace(re_cycle_t *cycle, re_file_t  *rep_file){
                 }
                 if(quoted){
                     quoted = 0;
-                    // int len=b->pos - b->start +4;
                     int len=b->pos - b->start;
-                    // s = re_pnalloc(cycle->pool, len);
-                    // re_memzero(s, len);
-                    // dst = s;
-                    // *dst='=';
-                    // *++dst='"';
-                    // for(dst++, src = b->start;  src < b->pos;){
-                    //     *dst++ = *src++;
-                    // }
-                    // *dst++ = '\n';
-                    // *dst++= '\0';
                     if (is_found){
                         order++;
-                        // sprintf(str, "%s_%d", lang, order);
-                        // write_buf(tmp_fd, tmp_buf, str, (size_t)strlen(str));
-                        // write_buf(inc_fd, inc_buf, str, (size_t)strlen(str));
-                        // write_buf(inc_fd, inc_buf, s, (size_t)(strlen(s)));
                         add_index_queue(cycle, tmp_queue, order);
                         add_index_queue(cycle, inc_queue, order);
                         add_buff_queue(cycle, inc_queue, b->start, (size_t)len);
                         is_found = 0;
                     }else{
-                        // write_buf(tmp_fd, tmp_buf, s+1, (size_t)len-3);
                         add_buff_queue(cycle, tmp_queue, b->start-1, (size_t)len+1);
                     }
 
                     b->start = b->pos;
                 }else{
-                    // write_buf(tmp_fd, tmp_buf, b->start, (size_t)(b->pos - b->start-1));
                     add_buff_queue(cycle, tmp_queue, b->start, (size_t)(b->pos - b->start-1));
                     b->start = b->pos;
                     quoted = 1;
