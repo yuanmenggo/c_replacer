@@ -1,7 +1,8 @@
-LAN_1=LAN_1"
-LAN_2="xx中国人xxxx""
-LAN_3=LAN_2"
-LAN_4="x哈哈我是谁'xxxx'x""
-LAN_5=LAN_3"
-LAN_6="正国人""bbb+"\"</a>";
+mttt1=LAN_1;
+mttt1="xx";
+mttt2=LAN_2;
+mttt3=LAN_3;
+mttt4=LAN_4;
+mttt5=LAN_5;
+mttt6="<a>\""+aaaa+LAN_6+ bbbb+"\"</a>";
 mttt7="xx"

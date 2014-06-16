@@ -1,6 +1,6 @@
 LAN_1="你好""
-LAN_2="xx\"人民银行\"xxxx""
-LAN_3="轻轻的我走了""
+LAN_2="xx中国人xxxx""
+LAN_3="xx\"人民银行\"xxxx""
 LAN_4="x哈哈我是谁'xxxx'x""
 LAN_5="轻轻的我走了""
 LAN_6="正国人""
