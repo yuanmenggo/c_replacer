@@ -47,24 +47,22 @@
 
 typedef struct stat file_info_t;
 
-// typedef struct {
-//         int         fd;
-//         int         tmp_fd;
-//         int         h_fd;
-//         u_char      *name;
-//         file_info_t info;
-//         size_t      size;
-//         re_buf_t    *buff;
-//         off_t       offset;
-
-// } re_file_t;
-
 typedef struct {
       int         fd;
       re_buf_t    *buff; 
       re_str_t    *name;
+      re_queue_t  *buffs;
       off_t       offset;
+
 } file_fd_t;
+
+typedef struct
+{
+  u_char        *start;
+  size_t        len;
+  size_t        index;
+  size_t        type;
+} buff_data;
 
 typedef struct {
         file_fd_t   fd_file;
@@ -93,6 +91,11 @@ size_t write_buf(size_t, re_buf_t *, u_char *, size_t);
 void * write_last(size_t, re_buf_t *);
 size_t  close_file(re_file_t *);
 
+void add_index_queue(re_cycle_t *, re_queue_t *, size_t);
+void add_buff_queue(re_cycle_t *, re_queue_t *, u_char *, size_t);
+void * write_queue(size_t, re_queue_t *);
+size_t write_and_close_file(re_file_t *);
+
 u_char * re_str(u_char *, u_char *, u_char *);
 size_t open_read_file(u_char *);
 size_t open_write_file(u_char *);
@@ -100,5 +103,8 @@ size_t exit_with_error(u_char *);
 size_t exit_with_ok(u_char *);
 
 size_t include_chinese(char *, size_t);
+size_t is_chinese(char c1, char c2);
+
+
 
 #endif /* _RE_REPLACE_H_INCLUDED_ */

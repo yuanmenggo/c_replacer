@@ -9,6 +9,7 @@ typedef struct re_queue_s  	re_queue_t;
 struct re_queue_s{
 	re_queue_t	*prev;
 	re_queue_t	*next;
+	void		*data;
 };
 
 #define re_queue_init(q)													\

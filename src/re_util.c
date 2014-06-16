@@ -69,6 +69,18 @@ write_last(size_t fd, re_buf_t *buf)
 }
 
 size_t
+is_chinese(char c1, char c2)
+{
+	if(c1 == 0) return 0;
+	if(c1 & 0x80){
+		if(c2 & 0x80){
+			return 1;
+		}
+	}
+	return 0;
+}
+
+size_t
 include_chinese(char *str, size_t len)
 {
 	char c;

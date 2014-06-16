@@ -96,6 +96,7 @@ build_rep_file(re_cycle_t *cycle, re_str_t *name)
 {
     re_str_t  tmp_name, inc_name;
     re_buf_t  *buf, *tmp_buf, *inc_buf;
+    re_queue_t  *tmp_queue, *inc_queue;
     re_file_t *file;
 
     if (name->len == 0) {
@@ -126,6 +127,9 @@ build_rep_file(re_cycle_t *cycle, re_str_t *name)
     tmp_buf = re_pcalloc(cycle->pool, sizeof(re_buf_t));
     file->fd_tmp_file.offset = 0;
     file->fd_tmp_file.buff = tmp_buf;
+    tmp_queue = re_pcalloc(cycle->pool, sizeof(re_queue_t));
+    file->fd_tmp_file.buffs = tmp_queue;
+    re_queue_init(tmp_queue);
     init_buf(cycle, tmp_buf);
 
 
@@ -140,6 +144,10 @@ build_rep_file(re_cycle_t *cycle, re_str_t *name)
     inc_buf = re_pcalloc(cycle->pool, sizeof(re_buf_t));
     file->fd_inc_file.offset = 0;
     file->fd_inc_file.buff = inc_buf;
+
+    inc_queue = re_pcalloc(cycle->pool, sizeof(re_queue_t));
+    file->fd_inc_file.buffs = inc_queue;
+    re_queue_init(inc_queue);
     init_buf(cycle, inc_buf);
 
     return file;
@@ -172,8 +180,9 @@ size_t
 loop_replace(re_cycle_t *cycle, re_file_t  *rep_file){
     off_t   file_size;
     u_char  str[10], lang[]="LAN", *start, ch, *s, *src, *dst;
-    size_t  len,size, n, r, offset, fd, tmp_fd, inc_fd;
+    size_t  len,size, n, r, offset, fd, tmp_fd, inc_fd, is_found =0;
     uintptr_t   commented, quoted, t_quoted, line;
+    re_queue_t  *tmp_queue, *inc_queue;
     int order = 0;
     re_buf_t   *b, *tmp_buf, *inc_buf;
 
@@ -184,6 +193,9 @@ loop_replace(re_cycle_t *cycle, re_file_t  *rep_file){
     b = rep_file->fd_file.buff;
     tmp_buf = rep_file->fd_tmp_file.buff;
     inc_buf = rep_file->fd_inc_file.buff;
+
+    tmp_queue = rep_file->fd_tmp_file.buffs;
+    inc_queue = rep_file->fd_inc_file.buffs;
 
     start = b->pos;
     file_size = rep_file->info.st_size;
@@ -196,7 +208,8 @@ loop_replace(re_cycle_t *cycle, re_file_t  *rep_file){
         size =(size_t)(file_size - offset);
         if(size <=0)
         {
-            close_file(rep_file);
+            // close_file(rep_file);
+            write_and_close_file(rep_file);
             return exit_with_ok("finished");
         }
         if(size > b->end - (b->start + len))
@@ -216,6 +229,9 @@ loop_replace(re_cycle_t *cycle, re_file_t  *rep_file){
 
         for(; b->pos < b->last;){
             ch = *b->pos++;
+            if (quoted && !is_found){
+                is_found = is_chinese(ch, *b->pos);
+            }
             if(ch=='"'){
                 if(t_quoted){
                     t_quoted = 0;
@@ -223,31 +239,37 @@ loop_replace(re_cycle_t *cycle, re_file_t  *rep_file){
                 }
                 if(quoted){
                     quoted = 0;
-                    int len=b->pos - b->start +4;
-                                    
-                    s = re_pnalloc(cycle->pool, len);
-                    re_memzero(s, len);
-                    dst = s;
-                    *dst='=';
-                    *++dst='"';
-                    for(dst++, src = b->start;  src < b->pos;){
-                        *dst++ = *src++;
-                    }
-                    *dst++ = '\n';
-                    *dst++= '\0';
-                    if (include_chinese(s, len)){
+                    // int len=b->pos - b->start +4;
+                    int len=b->pos - b->start;
+                    // s = re_pnalloc(cycle->pool, len);
+                    // re_memzero(s, len);
+                    // dst = s;
+                    // *dst='=';
+                    // *++dst='"';
+                    // for(dst++, src = b->start;  src < b->pos;){
+                    //     *dst++ = *src++;
+                    // }
+                    // *dst++ = '\n';
+                    // *dst++= '\0';
+                    if (is_found){
                         order++;
-                        sprintf(str, "%s_%d", lang, order);
-                        write_buf(tmp_fd, tmp_buf, str, (size_t)strlen(str));
-                        write_buf(inc_fd, inc_buf, str, (size_t)strlen(str));
-                        write_buf(inc_fd, inc_buf, s, (size_t)(strlen(s)));
+                        // sprintf(str, "%s_%d", lang, order);
+                        // write_buf(tmp_fd, tmp_buf, str, (size_t)strlen(str));
+                        // write_buf(inc_fd, inc_buf, str, (size_t)strlen(str));
+                        // write_buf(inc_fd, inc_buf, s, (size_t)(strlen(s)));
+                        add_index_queue(cycle, tmp_queue, order);
+                        add_index_queue(cycle, inc_queue, order);
+                        add_buff_queue(cycle, inc_queue, b->start, (size_t)len);
+                        is_found = 0;
                     }else{
-                        write_buf(tmp_fd, tmp_buf, s+1, (size_t)len-3);
+                        // write_buf(tmp_fd, tmp_buf, s+1, (size_t)len-3);
+                        add_buff_queue(cycle, tmp_queue, b->start-1, (size_t)len+1);
                     }
 
                     b->start = b->pos;
                 }else{
-                    write_buf(tmp_fd, tmp_buf, b->start, (size_t)(b->pos - b->start-1));
+                    // write_buf(tmp_fd, tmp_buf, b->start, (size_t)(b->pos - b->start-1));
+                    add_buff_queue(cycle, tmp_queue, b->start, (size_t)(b->pos - b->start-1));
                     b->start = b->pos;
                     quoted = 1;
                 }
@@ -261,6 +283,118 @@ loop_replace(re_cycle_t *cycle, re_file_t  *rep_file){
     }
     return 0;
 }
+
+void 
+add_buff_queue(re_cycle_t *cycle, re_queue_t *buffs, u_char *src, size_t len)
+{
+    buff_data *data;
+    re_queue_t *queue;
+    
+    data = re_pcalloc(cycle->pool, sizeof(buff_data));
+    queue = re_pcalloc(cycle->pool, sizeof(re_queue_t));
+    re_queue_init(queue);
+
+    data->start = src;
+    data->len = len;
+    data->type = 1;
+    queue->data = data;
+    
+    re_queue_insert_tail(buffs, queue);
+}
+
+void 
+add_index_queue(re_cycle_t *cycle, re_queue_t *buffs, size_t index)
+{
+    buff_data *data;
+    re_queue_t *queue;
+    
+    data = re_pcalloc(cycle->pool, sizeof(buff_data));
+    queue = re_pcalloc(cycle->pool, sizeof(re_queue_t));
+    re_queue_init(queue);
+
+    data->index = index;
+    data->type = 2;
+    queue->data = data;
+
+    re_queue_insert_tail(buffs, queue);
+}
+
+void *
+write_queue(size_t fd, re_queue_t *q)
+{
+    size_t r, index;
+    re_queue_t  *x;
+    buff_data   *v;
+    u_char lang[]="LAN",str[10];
+
+    for (x = re_queue_head(q); x != q; x = re_queue_next(x)){
+         v = (buff_data *)x->data;
+         if (v == NULL){
+            continue;
+         }
+         if (v->type == 1){
+            r = write(fd, v->start, v->len);
+            if(r == RE_ERROR){
+                exit_with_error("write fd error");
+            }
+        }else{
+            index = v->index;
+            sprintf(str, "%s_%d", lang, (int)index);
+            r = write(fd, str, strlen(str));
+            if(r == RE_ERROR){
+                exit_with_error("write fd error");
+            }
+        }
+    }
+}
+
+void *
+write_inc_queue(size_t fd, re_queue_t *q)
+{
+    size_t r, index;
+    re_queue_t  *x;
+    buff_data   *v;
+    u_char lang[]="LAN",str[10];
+
+    for (x = re_queue_head(q); x != q; x = re_queue_next(x)){
+         v = (buff_data *)x->data;
+         if (v == NULL){
+            continue;
+         }
+         if (v->type == 1){
+            r = write(fd, v->start, v->len);
+            r = write(fd, "\"\n", 2);
+            if(r == RE_ERROR){
+                exit_with_error("write fd error");
+            }
+        }else{
+            index = v->index;
+            sprintf(str, "%s_%d=\"", lang, (int)index);
+            r = write(fd, str, strlen(str));
+            if(r == RE_ERROR){
+                exit_with_error("write fd error");
+            }
+        }
+    }
+}
+
+size_t
+write_and_close_file(re_file_t *file)
+{
+    write_queue(file->fd_tmp_file.fd, file->fd_tmp_file.buffs);
+    write_inc_queue(file->fd_inc_file.fd, file->fd_inc_file.buffs);
+    if(close(file->fd_file.fd) ==RE_ERROR){
+        return exit_with_error("close fd error");
+    }
+    if(close(file->fd_tmp_file.fd) ==RE_ERROR){
+        return exit_with_error("close tmp_fd error");
+    }
+    if(close(file->fd_inc_file.fd) ==RE_ERROR){
+        return exit_with_error("close h_fd error");
+    }
+    return RE_OK;
+}
+
 
 size_t
 close_file(re_file_t *file)
