@@ -89,7 +89,6 @@ size_t process_file(re_cycle_t *, re_str_t *);
 size_t loop_replace(re_cycle_t *, re_file_t  *);
 size_t write_buf(size_t, re_buf_t *, u_char *, size_t);
 void * write_last(size_t, re_buf_t *);
-size_t  close_file(re_file_t *);
 
 void add_index_queue(re_cycle_t *, re_queue_t *, size_t);
 void add_buff_queue(re_cycle_t *, re_queue_t *, u_char *, size_t);

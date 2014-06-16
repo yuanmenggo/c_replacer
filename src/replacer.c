@@ -208,7 +208,6 @@ loop_replace(re_cycle_t *cycle, re_file_t  *rep_file){
         size =(size_t)(file_size - offset);
         if(size <=0)
         {
-            // close_file(rep_file);
             write_and_close_file(rep_file);
             return exit_with_ok("finished");
         }
@@ -372,24 +371,6 @@ write_and_close_file(re_file_t *file)
     if(close(file->fd_tmp_file.fd) ==RE_ERROR){
         return exit_with_error("close tmp_fd error");
     }
-    if(close(file->fd_inc_file.fd) ==RE_ERROR){
-        return exit_with_error("close h_fd error");
-    }
-    return RE_OK;
-}
-
-
-size_t
-close_file(re_file_t *file)
-{
-    if(close(file->fd_file.fd) ==RE_ERROR){
-        return exit_with_error("close fd error");
-    }
-    write_last(file->fd_tmp_file.fd, file->fd_tmp_file.buff);
-    if(close(file->fd_tmp_file.fd) ==RE_ERROR){
-        return exit_with_error("close tmp_fd error");
-    }
-    write_last(file->fd_inc_file.fd, file->fd_inc_file.buff);
     if(close(file->fd_inc_file.fd) ==RE_ERROR){
         return exit_with_error("close h_fd error");
     }
