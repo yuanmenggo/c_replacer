@@ -62,7 +62,7 @@ typedef struct
   size_t        len;
   size_t        index;
   size_t        type;
-} buff_data;
+} buff_data_t;
 
 typedef struct {
         file_fd_t   fd_file;

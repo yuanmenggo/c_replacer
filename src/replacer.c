@@ -269,10 +269,10 @@ loop_replace(re_cycle_t *cycle, re_file_t  *rep_file){
 void 
 add_buff_queue(re_cycle_t *cycle, re_queue_t *buffs, u_char *src, size_t len)
 {
-    buff_data *data;
+    buff_data_t *data;
     re_queue_t *queue;
     
-    data = re_pcalloc(cycle->pool, sizeof(buff_data));
+    data = re_pcalloc(cycle->pool, sizeof(buff_data_t));
     queue = re_pcalloc(cycle->pool, sizeof(re_queue_t));
     re_queue_init(queue);
 
@@ -287,10 +287,10 @@ add_buff_queue(re_cycle_t *cycle, re_queue_t *buffs, u_char *src, size_t len)
 void 
 add_index_queue(re_cycle_t *cycle, re_queue_t *buffs, size_t index)
 {
-    buff_data *data;
+    buff_data_t *data;
     re_queue_t *queue;
     
-    data = re_pcalloc(cycle->pool, sizeof(buff_data));
+    data = re_pcalloc(cycle->pool, sizeof(buff_data_t));
     queue = re_pcalloc(cycle->pool, sizeof(re_queue_t));
     re_queue_init(queue);
 
@@ -306,11 +306,11 @@ write_queue(size_t fd, re_queue_t *q)
 {
     size_t r, index;
     re_queue_t  *x;
-    buff_data   *v;
+    buff_data_t   *v;
     u_char lang[]="LAN",str[10];
 
     for (x = re_queue_head(q); x != q; x = re_queue_next(x)){
-         v = (buff_data *)x->data;
+         v = (buff_data_t *)x->data;
          if (v == NULL){
             continue;
          }
@@ -335,11 +335,11 @@ write_inc_queue(size_t fd, re_queue_t *q)
 {
     size_t r, index;
     re_queue_t  *x;
-    buff_data   *v;
+    buff_data_t   *v;
     u_char lang[]="LAN",str[10];
 
     for (x = re_queue_head(q); x != q; x = re_queue_next(x)){
-         v = (buff_data *)x->data;
+         v = (buff_data_t *)x->data;
          if (v == NULL){
             continue;
          }
