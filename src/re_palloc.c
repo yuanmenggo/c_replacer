@@ -98,6 +98,9 @@ re_memalign(size_t alignment, size_t size)
 	int  	err;
 
 	//p = memalign(alignment, size);
+	if(size<= 0){
+		size = 4096;
+	}
 	err	= posix_memalign(&p, alignment, size);
 	if (err)
 	{
@@ -127,4 +130,26 @@ re_pcalloc(re_pool_t *pool, size_t size)
 		re_memzero(p, size);
 	}
 	return p;
+}
+
+void
+re_reset_pool(re_pool_t *pool)
+{
+	re_pool_t   		*p;
+	for (p = pool; p; p = p->d.next){
+		p->d.last = (u_char *)p + sizeof(re_pool_t);
+		// re_memzero(p->d.last, p->d.end - p->d.last);
+	}
+}
+
+void
+re_destory_pool(re_pool_t *pool)
+{
+	re_pool_t   		*p, *n;
+	for (p = pool, n = pool->d.next;; p=n, n=n->d.next){
+		free(p);
+		if (n == NULL){
+			break;
+		}
+	}
 }

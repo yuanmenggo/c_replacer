@@ -12,7 +12,7 @@
 #include <errno.h> 
 #include <stdio.h>
 #include <stdarg.h>
-
+#include "memwatch.h"
 
 #include "re_palloc.h"
 #include "re_string.h"
@@ -66,6 +66,7 @@ typedef struct
 typedef struct {
         file_fd_t   fd_file;
         re_buf_t    *buff; 
+        re_pool_t   *pool;
         file_fd_t   fd_tmp_file;
         file_fd_t   fd_inc_file;
         file_info_t info;
@@ -90,9 +91,10 @@ size_t loop_replace(re_cycle_t *, re_file_t  *);
 size_t write_buf(size_t, re_buf_t *, u_char *, size_t);
 void * write_last(size_t, re_buf_t *);
 
-void add_index_queue(re_cycle_t *, re_queue_t *, size_t);
-void add_buff_queue(re_cycle_t *, re_queue_t *, u_char *, size_t);
+void add_index_queue(re_pool_t *, re_queue_t *, size_t);
+void add_buff_queue(re_pool_t *, re_queue_t *, u_char *, size_t);
 void * write_queue(size_t, re_queue_t *);
+size_t reset_queue(re_file_t *);
 size_t close_file(re_file_t *);
 size_t flush_file(re_file_t *);
 

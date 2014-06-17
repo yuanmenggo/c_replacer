@@ -104,6 +104,11 @@ build_rep_file(re_cycle_t *cycle, re_str_t *name)
 
     file = re_pcalloc(cycle->pool, sizeof(re_file_t));
 
+    file->pool = re_create_pool(RE_POOL_SIZE);
+    if (file->pool == NULL){
+        exit_with_error("Create file pool error");
+    }
+
     file->fd_file.fd = open_read_file(name->data);
     if( file->fd_file.fd == RE_ERROR){
         exit_with_error("open file error");
@@ -158,10 +163,12 @@ loop_replace(re_cycle_t *cycle, re_file_t  *rep_file){
     size_t  len, size, n, r, offset, fd, is_found =0;
     uintptr_t   commented, quoted, t_quoted;
     re_queue_t  *tmp_queue, *inc_queue;
+    re_pool_t   *queue_pool;
     int order = 0;
     re_buf_t   *b;
 
     fd = rep_file->fd_file.fd;
+    queue_pool = rep_file->pool;
 
     b = rep_file->buff;
 
@@ -176,8 +183,11 @@ loop_replace(re_cycle_t *cycle, re_file_t  *rep_file){
     for( ;; ){
         if (b->end <= b->pos){
             flush_file(rep_file);
+            b->pos = start;
+            b->start = start;
+            // queue_pool = rep_file->pool;
         }
-        len = b->pos - start;
+//        len = b->pos - b->start;
         offset = rep_file->fd_file.offset;
         size =(size_t)(file_size - offset);
         if(size <=0)
@@ -187,9 +197,9 @@ loop_replace(re_cycle_t *cycle, re_file_t  *rep_file){
             return exit_with_ok("finished");
         }
         
-        if(size > b->end - (b->start + len))
+        if(size > b->end - b->pos)
         {
-            size = b->end -(b->start + len);
+            size = b->end -b->pos;
         }
 
         n = pread(fd, b->start, size, offset);
@@ -200,7 +210,7 @@ loop_replace(re_cycle_t *cycle, re_file_t  *rep_file){
         rep_file->fd_file.offset +=n;
         offset += n;
         b->last = b->pos + n;
-        start = b->start;
+//        start = b->start;
 
         for(; b->pos < b->last;){
             ch = *b->pos++;
@@ -217,17 +227,17 @@ loop_replace(re_cycle_t *cycle, re_file_t  *rep_file){
                     int len=b->pos - b->start;
                     if (is_found){
                         order++;
-                        add_index_queue(cycle, tmp_queue, order);
-                        add_index_queue(cycle, inc_queue, order);
-                        add_buff_queue(cycle, inc_queue, b->start, (size_t)len);
+                        add_index_queue(queue_pool, tmp_queue, order);
+                        add_index_queue(queue_pool, inc_queue, order);
+                        add_buff_queue(queue_pool, inc_queue, b->start, (size_t)len);
                         is_found = 0;
                     }else{
-                        add_buff_queue(cycle, tmp_queue, b->start-1, (size_t)len+1);
+                        add_buff_queue(queue_pool, tmp_queue, b->start-1, (size_t)len+1);
                     }
 
                     b->start = b->pos;
                 }else{
-                    add_buff_queue(cycle, tmp_queue, b->start, (size_t)(b->pos - b->start-1));
+                    add_buff_queue(queue_pool, tmp_queue, b->start, (size_t)(b->pos - b->start-1));
                     b->start = b->pos;
                     quoted = 1;
                 }
@@ -243,13 +253,13 @@ loop_replace(re_cycle_t *cycle, re_file_t  *rep_file){
 }
 
 void 
-add_buff_queue(re_cycle_t *cycle, re_queue_t *buffs, u_char *src, size_t len)
+add_buff_queue(re_pool_t *queue_pool, re_queue_t *buffs, u_char *src, size_t len)
 {
     buff_data_t *data;
     re_queue_t *queue;
     
-    data = re_pcalloc(cycle->pool, sizeof(buff_data_t));
-    queue = re_pcalloc(cycle->pool, sizeof(re_queue_t));
+    data = re_pcalloc(queue_pool, sizeof(buff_data_t));
+    queue = re_pcalloc(queue_pool, sizeof(re_queue_t));
     re_queue_init(queue);
 
     data->start = src;
@@ -261,13 +271,13 @@ add_buff_queue(re_cycle_t *cycle, re_queue_t *buffs, u_char *src, size_t len)
 }
 
 void 
-add_index_queue(re_cycle_t *cycle, re_queue_t *buffs, size_t index)
+add_index_queue(re_pool_t *queue_pool, re_queue_t *buffs, size_t index)
 {
     buff_data_t *data;
     re_queue_t *queue;
     
-    data = re_pcalloc(cycle->pool, sizeof(buff_data_t));
-    queue = re_pcalloc(cycle->pool, sizeof(re_queue_t));
+    data = re_pcalloc(queue_pool, sizeof(buff_data_t));
+    queue = re_pcalloc(queue_pool, sizeof(re_queue_t));
     re_queue_init(queue);
 
     data->index = index;
@@ -321,7 +331,7 @@ write_inc_queue(size_t fd, re_queue_t *q)
          }
          if (v->type == 1){
             r = write(fd, v->start, v->len);
-            r = write(fd, "\"\n", 2);
+            r = write(fd, "\n", 1);
             if(r == RE_ERROR){
                 exit_with_error("write fd error");
             }
@@ -365,11 +375,24 @@ flush_file(re_file_t *file)
         }
     }
     write_inc_queue(inc_fd, file->fd_inc_file.buffs);
+    reset_queue(file);
 
     buf->pos = buf->start;
     buf->last = buf->start;
     return RE_OK;
 }
+
+
+size_t
+reset_queue(re_file_t *file)
+{
+    re_queue_init(file->fd_tmp_file.buffs);
+    re_queue_init(file->fd_inc_file.buffs);
+    re_reset_pool(file->pool);
+    // re_destory_pool(file->pool);
+    // file->pool = re_create_pool(RE_POOL_SIZE);
+}
+
 
 size_t
 close_file(re_file_t *file)

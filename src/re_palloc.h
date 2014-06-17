@@ -69,6 +69,8 @@ re_pool_t * re_create_pool(size_t);
 void * re_pnalloc(re_pool_t *, size_t);
 void * re_palloc(re_pool_t *, size_t);
 void * re_pcalloc(re_pool_t *, size_t);
-void * re_alloc(size_t size);
+void * re_alloc(size_t);
+void re_reset_pool(re_pool_t *);
+void re_destory_pool(re_pool_t *);
 
 #endif /* _RE_PALLOC_H_INCLUDED_ */
