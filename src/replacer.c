@@ -174,14 +174,19 @@ loop_replace(re_cycle_t *cycle, re_file_t  *rep_file){
     t_quoted = 0;
 
     for( ;; ){
+        if (b->end <= b->pos){
+            flush_file(rep_file);
+        }
         len = b->pos - start;
         offset = rep_file->fd_file.offset;
         size =(size_t)(file_size - offset);
         if(size <=0)
         {
-            write_and_close_file(rep_file);
+            flush_file(rep_file);
+            close_file(rep_file);
             return exit_with_ok("finished");
         }
+        
         if(size > b->end - (b->start + len))
         {
             size = b->end -(b->start + len);
@@ -332,28 +337,43 @@ write_inc_queue(size_t fd, re_queue_t *q)
 }
 
 size_t
-write_and_close_file(re_file_t *file)
+flush_file(re_file_t *file)
 {
+    size_t tmp_fd, inc_fd;
     re_str_t  *name, tmp_name, inc_name;
+    re_buf_t *buf;
+
     name = file->fd_file.name;
+    buf = file->buff;
 
-    tmp_name = resetstr(name, ".tmp");
-    
-    file->fd_tmp_file.fd = open_write_file(tmp_name.data);
-    if( file->fd_tmp_file.fd == RE_ERROR){
-        return exit_with_error("open tmp file error");
+    if ((tmp_fd = file->fd_tmp_file.fd) == 0){
+        tmp_name = resetstr(name, ".tmp");
+        file->fd_tmp_file.fd = open_write_file(tmp_name.data);
+        tmp_fd = file->fd_tmp_file.fd;
+        if( file->fd_tmp_file.fd == RE_ERROR){
+            return exit_with_error("open tmp file error");
+        }
     }
-    write_queue(file->fd_tmp_file.fd, file->fd_tmp_file.buffs);
+    write_queue(tmp_fd, file->fd_tmp_file.buffs);
 
-    inc_name = resetstr(name, ".h");
-
-    file->fd_inc_file.fd = open_write_file(inc_name.data);
-    if( file->fd_inc_file.fd == RE_ERROR){
-        return exit_with_error("open include file error");
+    if ((inc_fd = file->fd_inc_file.fd) == 0){
+        inc_name = resetstr(name, ".h");
+        file->fd_inc_file.fd = open_write_file(inc_name.data);
+        inc_fd = file->fd_inc_file.fd;
+        if( file->fd_inc_file.fd == RE_ERROR){
+            return exit_with_error("open include file error");
+        }
     }
+    write_inc_queue(inc_fd, file->fd_inc_file.buffs);
 
-    write_inc_queue(file->fd_inc_file.fd, file->fd_inc_file.buffs);
+    buf->pos = buf->start;
+    buf->last = buf->start;
+    return RE_OK;
+}
 
+size_t
+close_file(re_file_t *file)
+{
     if(close(file->fd_file.fd) ==RE_ERROR){
         return exit_with_error("close fd error");
     }

@@ -93,7 +93,8 @@ void * write_last(size_t, re_buf_t *);
 void add_index_queue(re_cycle_t *, re_queue_t *, size_t);
 void add_buff_queue(re_cycle_t *, re_queue_t *, u_char *, size_t);
 void * write_queue(size_t, re_queue_t *);
-size_t write_and_close_file(re_file_t *);
+size_t close_file(re_file_t *);
+size_t flush_file(re_file_t *);
 
 u_char * re_str(u_char *, u_char *, u_char *);
 size_t open_read_file(u_char *);
